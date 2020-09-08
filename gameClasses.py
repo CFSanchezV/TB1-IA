@@ -2,6 +2,7 @@ import pygame as pg
 import os
 import random as rnd
 import math
+import time
 
 pg.init()
 
@@ -13,7 +14,7 @@ segoeFONT = pg.font.SysFont("segoeui", 30, True)
 
 #--------------IMAGES---------------------# 
 
-bus_images = [pg.transform.scale(pg.image.load(os.path.join("images", "bus" + str(x) + ".png")).convert_alpha(), (180, 192)) for x in range(1, 4)]
+bus_images = [pg.transform.scale(pg.image.load(os.path.join("images", "bus" + str(x) + ".png")).convert_alpha(), (118, 126)) for x in range(1, 4)]
 bg_images = [pg.transform.scale(pg.image.load(os.path.join("images", "Aroad" + str(i) + ".png")).convert_alpha(), (750, 552)) for i in range(1, 11)]
 
 #imgs from spritesheets
@@ -29,7 +30,7 @@ kids_sheet = pg.image.load("images/kids245x250.png").convert_alpha()
 for i in range(0, 750, 250):
     for j in range(0, 735, 245):
         kid_img = kids_sheet.subsurface((j, i, 245, 250))
-        kid_img = pg.transform.scale(kid_img, (kid_img.get_width()-75, kid_img.get_height()-75))
+        kid_img = pg.transform.scale(kid_img, (kid_img.get_width()-90, kid_img.get_height()-90))
         kid_images.append(kid_img)
 
 
@@ -46,9 +47,7 @@ An optional destination surface can be used. Quicker to repeatedly scale somethi
 class Bus:
     """
     Bus class
-    """    
-    IMGS = bus_images
-    ROT_VEL = 20
+    """
     ANIMATION_TIME = 5
 
     def __init__(self, x, y):
@@ -57,22 +56,47 @@ class Bus:
         param y: starting y pos (int)
         return: None
         """
-        self.x = x
+        self.x = x        
         self.y = y
+        self.firstY = y
         self.tick_count = 0
-        self.vel = 0
+        self.Hvel = 90
+        self.Vvel = 0
+        self.jumping = False
         self.height = self.y
         self.img_count = 0
-        self.img = self.IMGS[0]
+        self.img = bus_images[0]
 
     def jump(self):
         """
         make the bus jump
         return: None
         """
-        self.vel = -20
-        self.tick_count = 0
-        self.height = self.y
+        if not self.jumping:
+            self.jumping = True
+            self.Vvel = -8.9
+            self.tick_count = 0
+            self.height = self.y
+
+    def moveDown(self):
+        self.tick_count += 1
+        s = self.Vvel*self.tick_count + 1.2*self.tick_count**2
+
+        if s >= 10:
+            s = 10
+        if s < 0:
+            s -= 0.2
+        
+        #displacement s
+        self.y = self.y + s
+
+        #jumpipng
+        if s < 0 or self.y < self.height - (self.img.get_height()//2):
+            self.y = self.y + s
+        else:
+            self.y = self.firstY
+            self.jumping = False
+
 
     def move(self, direction):
         """
@@ -80,44 +104,32 @@ class Bus:
         return: None
         """
         self.tick_count += 1
-        self.vel = 20
 
-        # for acceleration
-        displacement = self.vel*(self.tick_count) + 0.5*(3)*(self.tick_count)**2  # calculate displacement
+        if direction == "right" and self.x + self.Hvel < 600 and not self.jumping:                           
+            self.x = self.x + self.Hvel
+        elif direction == "left" and self.x - self.Hvel > 200 and not self.jumping:
+            self.x = self.x - self.Hvel
 
-        # terminal velocity
-        if displacement >= 16:
-            displacement = (displacement/abs(displacement)) * 16
-
-        if displacement < 0:
-            displacement -= 2
-
-        if direction == "right":
-            self.x = self.x + displacement
-        elif direction == "left":
-            self.x = self.x - displacement        
-
+        
     def draw(self, win):
         """
-        drawing the bus
-        param win: pg window / surface
+        param win: pg surface
         return: None
         """
         self.img_count += 1
 
         # Loop through three images to 'animate'
         if self.img_count <= self.ANIMATION_TIME:
-            self.img = self.IMGS[0]
+            self.img = bus_images[0]
         elif self.img_count <= self.ANIMATION_TIME*2:
-            self.img = self.IMGS[1]
+            self.img = bus_images[1]
         elif self.img_count <= self.ANIMATION_TIME*3:
-            self.img = self.IMGS[2]
+            self.img = bus_images[2]
         elif self.img_count <= self.ANIMATION_TIME*4:
-            self.img = self.IMGS[1]
+            self.img = bus_images[1]
         elif self.img_count == self.ANIMATION_TIME*4 + 1:
-            self.img = self.IMGS[0]
+            self.img = bus_images[0]
             self.img_count = 0
-
 
         # draw bus
         win.blit(self.img, (self.x, self.y))
@@ -133,9 +145,8 @@ class Bus:
 class Kid:
     """
     Kid class
-    """    
-    IMGS = kid_images
-    ANIMATION_TIME = 6
+    """
+    ANIMATION_TIME = 10
 
     def __init__(self, x, y):
         """
@@ -146,9 +157,9 @@ class Kid:
         self.x = x
         self.y = y
         self.tick_count = 0
-        self.vel = -5
-        self.width = 245
-        self.height = 250
+        self.vel = -3
+        self.width = 245 - 90
+        self.height = 250 - 90
         self.alive = True
         self.img_count = 0        
         # random img for Kid        
@@ -166,39 +177,49 @@ class Kid:
         #     d = 0
 
         self.y = self.y + self.vel
-        if self.y == 280:
+        if self.y == 300:
             self.vel = 0
             self.alive = False
 
     def draw(self, win):
         if self.alive:
             self.img_count += 1
-            inc = 0
+            inc = 0            
             
             if self.img_count < self.ANIMATION_TIME*2:
-                self.img = pg.transform.scale(self.img, (self.substitute_img.get_width()-20, self.substitute_img.get_height()-20))
+                self.img = pg.transform.scale(self.substitute_img, (self.width-20, self.height-20))
                 inc += 20//2
             elif self.img_count < self.ANIMATION_TIME*3:
-                self.img = pg.transform.scale(self.img, (self.substitute_img.get_width()-40, self.substitute_img.get_height()-40))
-                inc += 40//2
+                self.img = pg.transform.scale(self.substitute_img, (self.width-30, self.height-30))
+                inc += 30//2
             elif self.img_count < self.ANIMATION_TIME*4:
-                self.img = pg.transform.scale(self.img, (self.substitute_img.get_width()-60, self.substitute_img.get_height()-60))
+                self.img = pg.transform.scale(self.substitute_img, (self.width-40, self.height-40))
+                inc += 40//2
+            elif self.img_count < self.ANIMATION_TIME*5:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-50, self.height-50))
+                inc += 50//2
+            elif self.img_count < self.ANIMATION_TIME*6:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-60, self.height-60))
                 inc += 60//2
-            elif self.img_count < self.ANIMATION_TIME*4 + 1:
-                self.img_count = 0
-                inc = 0
-                self.img = self.substitute_img
+            elif self.img_count < self.ANIMATION_TIME*7:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-70, self.height-70))
+                inc += 70//2
+            elif self.img_count < self.ANIMATION_TIME*8:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-80, self.height-80))
+                inc += 80//2
+            elif self.img_count < self.ANIMATION_TIME*9 + 1:
+                self.img_count = 0                
+                inc += 90//2
         
         # win.blit(self.img, (self.x + inc, self.y))
-        if self.y != 280 and self.alive == True:
+        if self.y != 300 and self.alive == True:
             win.blit(self.img, (self.x + inc, self.y))
         
 
 class Adult:
     """
     Adult class
-    """    
-    IMGS = adult_images
+    """
     ROT_VEL = 20
     ANIMATION_TIME = 5
 
@@ -233,7 +254,7 @@ class BackGround:
         self.y = 0
         self.tick_count = 0
         self.img_count = 0
-        self.img = self.IMGS[0]
+        self.img = self.IMGS[9]
 
     def draw(self, win):
         """
@@ -245,27 +266,27 @@ class BackGround:
 
         # Loop through 10 images
         if self.img_count <= self.ANIMATION_TIME:
-            self.img = self.IMGS[0]
-        elif self.img_count <= self.ANIMATION_TIME*2:
-            self.img = self.IMGS[1]
-        elif self.img_count <= self.ANIMATION_TIME*3:
-            self.img = self.IMGS[2]
-        elif self.img_count <= self.ANIMATION_TIME*4:
-            self.img = self.IMGS[3]
-        elif self.img_count <= self.ANIMATION_TIME*4:
-            self.img = self.IMGS[4]
-        elif self.img_count <= self.ANIMATION_TIME*5:
-            self.img = self.IMGS[5]
-        elif self.img_count <= self.ANIMATION_TIME*6:
-            self.img = self.IMGS[6]
-        elif self.img_count <= self.ANIMATION_TIME*7:
-            self.img = self.IMGS[7]
-        elif self.img_count <= self.ANIMATION_TIME*8:
-            self.img = self.IMGS[8]
-        elif self.img_count <= self.ANIMATION_TIME*9:
             self.img = self.IMGS[9]
-        elif self.img_count == self.ANIMATION_TIME*9 + 1:
+        elif self.img_count <= self.ANIMATION_TIME*2:
+            self.img = self.IMGS[8]
+        elif self.img_count <= self.ANIMATION_TIME*3:
+            self.img = self.IMGS[7]
+        elif self.img_count <= self.ANIMATION_TIME*4:
+            self.img = self.IMGS[6]
+        elif self.img_count <= self.ANIMATION_TIME*4:
+            self.img = self.IMGS[5]
+        elif self.img_count <= self.ANIMATION_TIME*5:
+            self.img = self.IMGS[4]
+        elif self.img_count <= self.ANIMATION_TIME*6:
+            self.img = self.IMGS[3]
+        elif self.img_count <= self.ANIMATION_TIME*7:
+            self.img = self.IMGS[2]
+        elif self.img_count <= self.ANIMATION_TIME*8:
+            self.img = self.IMGS[1]
+        elif self.img_count <= self.ANIMATION_TIME*9:
             self.img = self.IMGS[0]
+        elif self.img_count == self.ANIMATION_TIME*9 + 1:
+            self.img = self.IMGS[9]
             self.img_count = 0
 
         win.blit(self.img, (self.x, self.y))
