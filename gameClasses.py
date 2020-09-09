@@ -42,12 +42,9 @@ An optional destination surface can be used. Quicker to repeatedly scale somethi
 '''
 
 
-
 #-------------------CLASSES-----------------------
 class Bus:
-    """
-    Bus class
-    """
+    """ Bus class """
     ANIMATION_TIME = 5
 
     def __init__(self, x, y):
@@ -61,11 +58,14 @@ class Bus:
         self.firstY = y
         self.tick_count = 0
         self.Hvel = 90
-        self.Vvel = 0
-        self.jumping = False
-        self.height = self.y
         self.img_count = 0
         self.img = bus_images[0]
+        #jump
+        self.Vvel = 0
+        self.jumping = False
+        self.height = self.y        
+        #collision
+        self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
 
     def jump(self):
         """
@@ -74,18 +74,18 @@ class Bus:
         """
         if not self.jumping:
             self.jumping = True
-            self.Vvel = -8.9
+            self.Vvel = -4.7
             self.tick_count = 0
             self.height = self.y
 
     def moveDown(self):
         self.tick_count += 1
-        s = self.Vvel*self.tick_count + 1.2*self.tick_count**2
+        s = self.Vvel*self.tick_count + 0.5*self.tick_count**2
 
-        if s >= 10:
-            s = 10
+        if s >= 6:
+            s = 6
         if s < 0:
-            s -= 0.2
+            s -= 1.5
         
         #displacement s
         self.y = self.y + s
@@ -131,21 +131,22 @@ class Bus:
             self.img = bus_images[0]
             self.img_count = 0
 
+        #collision debug        
+        self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
+        pg.draw.rect(win, pg.Color("red"), self.hitbox, 2)
         # draw bus
         win.blit(self.img, (self.x, self.y))
 
     def get_mask(self):
         """
-        gets the mask of current bus image
+        gets the mask of bus image
         return: None
         """
         return pg.mask.from_surface(self.img)
 
 
 class Kid:
-    """
-    Kid class
-    """
+    """ Kid class  """
     ANIMATION_TIME = 10
 
     def __init__(self, x, y):
@@ -158,31 +159,28 @@ class Kid:
         self.y = y
         self.tick_count = 0
         self.vel = -3
-        self.width = 245 - 90
-        self.height = 250 - 90
+        self.width = 245 - 110
+        self.height = 250 - 110
         self.alive = True
         self.img_count = 0        
         # random img for Kid        
         self.img = rnd.choice(kid_images)
         self.substitute_img = self.img
 
+        #collision        
+        self.hitbox = (self.x, self.y, self.width, self.height)
+        self.passed = False
 
     def move(self):
         self.tick_count += 1
-        # d = self.vel*self.tick_count + 1.5*self.tick_count**2
-        # if d >= 16:
-        #     d = 16
-        
-        # if d < 0:
-        #     d = 0
 
         self.y = self.y + self.vel
-        if self.y == 300:
+        if self.y == 300 and self.alive:
             self.vel = 0
-            self.alive = False
+            self.passed = True
 
     def draw(self, win):
-        if self.alive:
+        if self.alive and self.passed == False:
             self.img_count += 1
             inc = 0            
             
@@ -211,17 +209,26 @@ class Kid:
                 self.img_count = 0                
                 inc += 90//2
         
+            #collision debug
+            self.hitbox = (self.x + inc, self.y, self.img.get_width(), self.img.get_height())
+            pg.draw.rect(win, pg.Color("blue"), self.hitbox, 2)
+
         # win.blit(self.img, (self.x + inc, self.y))
         if self.y != 300 and self.alive == True:
             win.blit(self.img, (self.x + inc, self.y))
-        
+
+    def collide(self, bus):
+        # hitbox collisions w/ centers and bus bottom
+        if self.alive and not self.passed:
+            if ((self.hitbox[0] + self.hitbox[2]//2) > bus.hitbox[0]) and (self.hitbox[0] + self.hitbox[2]//2) < (bus.hitbox[0] + bus.hitbox[2]):
+                if (self.hitbox[1] + self.hitbox[3]//1.4) < bus.hitbox[1] + bus.hitbox[3] and (self.hitbox[1] + self.hitbox[3]//1.4) >= (bus.hitbox[1] + bus.hitbox[3]) - 6:
+                    return True
+
+        return False
 
 class Adult:
-    """
-    Adult class
-    """
-    ROT_VEL = 20
-    ANIMATION_TIME = 5
+    """ Adult class  """
+    ANIMATION_TIME = 10
 
     def __init__(self, x, y):
         """
@@ -232,24 +239,80 @@ class Adult:
         self.x = x
         self.y = y
         self.tick_count = 0
-        self.vel = 0
-        self.height = self.y
-        self.img_count = 0
-        # random img for Adult        
+        self.vel = -3
+        self.width = 73
+        self.height = 145
+        self.alive = True
+        self.img_count = 0        
+        # random img for Kid        
         self.img = rnd.choice(adult_images)
+        self.substitute_img = self.img
 
+        #collision
+        self.hitbox = (self.x, self.y, self.width, self.height)
+        self.passed = False
+
+    def move(self):
+        self.tick_count += 1
+
+        self.y = self.y + self.vel
+        if self.y == 300 and self.alive:
+            self.vel = 0
+            self.passed = True
+
+    def draw(self, win):
+        if self.alive and self.passed == False:
+            self.img_count += 1
+            inc = 0            
+            
+            if self.img_count < self.ANIMATION_TIME*2:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-5, self.height-10))
+                inc += 5//2
+            elif self.img_count < self.ANIMATION_TIME*3:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-10, self.height-20))
+                inc += 10//2
+            elif self.img_count < self.ANIMATION_TIME*4:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-15, self.height-30))
+                inc += 15//2
+            elif self.img_count < self.ANIMATION_TIME*5:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-20, self.height-40))
+                inc += 20//2
+            elif self.img_count < self.ANIMATION_TIME*6:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-25, self.height-50))
+                inc += 25//2
+            elif self.img_count < self.ANIMATION_TIME*7:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-30, self.height-60))
+                inc += 30//2
+            elif self.img_count < self.ANIMATION_TIME*8:
+                self.img = pg.transform.scale(self.substitute_img, (self.width-35, self.height-70))
+                inc += 35//2
+            elif self.img_count < self.ANIMATION_TIME*9 + 1:
+                self.img_count = 0                
+                inc += 40//2
+        
+            #collision debug
+            self.hitbox = (self.x + inc, self.y, self.img.get_width(), self.img.get_height())
+            pg.draw.rect(win, pg.Color("yellow"), self.hitbox, 2)
+
+        # win.blit(self.img, (self.x + inc, self.y))
+        if self.y != 300 and self.alive == True:
+            win.blit(self.img, (self.x + inc, self.y))
+
+    def collide(self, bus):
+        # hitbox collisions w/ centers and bus bottom
+        if self.alive and not self.passed:
+            if ((self.hitbox[0] + self.hitbox[2]//2) > bus.hitbox[0]) and (self.hitbox[0] + self.hitbox[2]//2) < (bus.hitbox[0] + bus.hitbox[2]):
+                if (self.hitbox[1] + self.hitbox[3]//1.5) <= bus.hitbox[1] + bus.hitbox[3] and (self.hitbox[1] + self.hitbox[3]//1.5) >= (bus.hitbox[1] + bus.hitbox[3]) - 6:
+                    return True
+        
+        return False
 
 class BackGround:
-    """
-    background class
-    """    
+    """ background class """
     IMGS = bg_images
     ANIMATION_TIME = 7
 
-    def __init__(self):
-        """        
-        return: None
-        """
+    def __init__(self):        
         self.x = 0
         self.y = 0
         self.tick_count = 0
@@ -291,8 +354,9 @@ class BackGround:
 
         win.blit(self.img, (self.x, self.y))
 
-class DNA:                             # DNA for genetic algorithm
-    def __init__(self, genes=None):      # If initialized with a gene already, don't
+
+class DNA:                               # DNA for GA
+    def __init__(self, genes=None):      # has genes?
         self.array = []                  # generate random movement. Else, do.
         self.chain = pg.math.Vector2()   # DNA chain = 2d vector // xy as tuple ( for random acceleration )
         if genes:
