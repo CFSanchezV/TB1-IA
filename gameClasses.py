@@ -39,11 +39,11 @@ pygame.transform.scale() || syntax: scale(Surface, (width, height), DestSurface 
 def Remap(aliveTime, frameLimit):  # Return 1 if best, returns 0 if worst
     return 1 + (aliveTime - 0) * (0 - 1) / frameLimit
 
-#-------------------GA VARIABLES-----------------------
-busCount = 50         # Amount of buses for each generation
-aliveBusCount = busCount  # Currently alive buses
-frameLimit = 1000       # Max frames to play
+#-------------------GA VARIABLES-----------------------#
 
+busCount = 4         # Amount of buses for each generation
+aliveBusCount = busCount  # Currently alive buses
+frameLimit = 500       # Max frames to play
 
 #-------------------CLASSES-----------------------
 class DNA:                               # DNA for GA
@@ -145,26 +145,27 @@ class Bus:
         
     def draw(self, win):
         """ param win: pg surface """
-        self.img_count += 1
+        if self.alive and not self.crashed:
+            self.img_count += 1
 
-        # Loop through three images to 'animate'
-        if self.img_count <= self.ANIMATION_TIME:
-            self.img = bus_images[0]
-        elif self.img_count <= self.ANIMATION_TIME*2:
-            self.img = bus_images[1]
-        elif self.img_count <= self.ANIMATION_TIME*3:
-            self.img = bus_images[2]
-        elif self.img_count <= self.ANIMATION_TIME*4:
-            self.img = bus_images[1]
-        elif self.img_count == self.ANIMATION_TIME*4 + 1:
-            self.img = bus_images[0]
-            self.img_count = 0
+            # Loop through three images to 'animate'
+            if self.img_count <= self.ANIMATION_TIME:
+                self.img = bus_images[0]
+            elif self.img_count <= self.ANIMATION_TIME*2:
+                self.img = bus_images[1]
+            elif self.img_count <= self.ANIMATION_TIME*3:
+                self.img = bus_images[2]
+            elif self.img_count <= self.ANIMATION_TIME*4:
+                self.img = bus_images[1]
+            elif self.img_count == self.ANIMATION_TIME*4 + 1:
+                self.img = bus_images[0]
+                self.img_count = 0
 
-        # collision
-        self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
-        # pg.draw.rect(win, pg.Color("red"), self.hitbox, 2)
+            # collision
+            self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
+            # pg.draw.rect(win, pg.Color("red"), self.hitbox, 2)
         
-        win.blit(self.img, (self.x, self.y))
+            win.blit(self.img, (self.x, self.y))
 
     def checkCollision(self, collided):
         global aliveBusCount
@@ -174,7 +175,6 @@ class Bus:
 
         if self.crashed:
             self.alive = False
-            aliveBusCount -= 1
 
     def CalculateFitness(self):  # The longer it lives, the better its fitness is.
         global frameLimit
@@ -186,10 +186,10 @@ class Bus:
         x_disp = self.gene.array[frameCount].x
         
         if self.alive and (frameCount%20 == 0):
-            if x_disp > 0:
+            if x_disp > 0:                
                 self.move("right")
             elif x_disp < 0:
-                self.move("right")
+                self.move("left")
             
 
 class Kid:
@@ -226,7 +226,7 @@ class Kid:
             self.passed = True
 
     def draw(self, win):
-        if self.alive and self.passed == False:
+        if self.alive and not self.passed:
             self.img_count += 1
             inc = 0            
             
@@ -303,7 +303,7 @@ class Adult:
             self.passed = True
 
     def draw(self, win):
-        if self.alive and self.passed == False:
+        if self.alive and not self.passed:
             self.img_count += 1
             inc = 0            
             

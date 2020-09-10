@@ -9,7 +9,7 @@ defaultFont = pg.font.SysFont(None, 40)     # Default font of the program
 
 
 #----------------GEN ALG-----------------------#
-rnd.seed(rnd.randrange(50302010))     # random seed set to random value
+rnd.seed(rnd.randrange(50000000))     # random seed set to random value
 generationCount = 0
 frameCount = 0        # Count the frames until the frameLimit
 successCount = 0      # Counting the successful buses
@@ -39,7 +39,7 @@ def ShowText(string, x, y, size = 20, color=(255, 255, 255)):   # show text on s
     segoe = pg.font.SysFont("segoeui", size, True)
     win.blit(segoe.render(string, True, color), (x, y))
 
-def draw_window(win, bg, buses, victims, score):  # Quick 'draw it all' method, order matters    
+def draw_window(win, bg, buses, victims, score):  # 'draw it all' method, order matters    
     the_score = segoeFONT.render("Score:" + str(score), True, pg.Color("white"))
     win.blit(the_score, (WIN_WIDTH - 10 - the_score.get_width(), 0))
     
@@ -74,7 +74,7 @@ def FinishGeneration():     # A function for resetting process.
     for bus in buses:
         bus.CalculateFitness()
         avgFitnessSum += bus.fitness
-        if bus.fitness >= 1.0:
+        if bus.fitness >= 1.0 or bus.aliveTime == frameLimit:
             successCount += 1
         if bus.fitness > maxFit:
             maxFit = bus.fitness
@@ -94,7 +94,7 @@ def FinishGeneration():     # A function for resetting process.
     for i, bus in enumerate(buses):
         n = int((bus.fitness ** 2) * 100)
         if i == maxFitIndex:
-            print(bus.fitness)
+            # print(bus.fitness)
             if successCount < 2:
                 n = int((bus.fitness ** 2) * 150)       # Squared the fitness value to make sure
                                                         # The furthest ones get much more place in the gene pool.
@@ -103,20 +103,21 @@ def FinishGeneration():     # A function for resetting process.
                                                         # finishing the level, get much much more places in the pool.
         for _ in range(n):
             genePool.append(buses[i])
+                
+    # Reset
+    if successCount >= len(buses):
+        print("All the buses cleared the game")
 
-        # Reset
         buses.clear()
         generationCount = 0
-        for i in range(busCount):
+        for _ in range(busCount):            
             buses.append(Bus(validbusX(), 290))
 
-    if successCount >= len(buses)//2:
-        print("More than half of the buses cleared the game")
     else:
         for i, bus in enumerate(buses):  # For every bus, create a child with crossover.
-            randomIndex = rnd.randint(0, len(genePool) - 1)
+            randomIndex = rnd.randint(0, len(genePool) -1)
             parentA = genePool[randomIndex].gene
-            randomIndex = rnd.randint(0, len(genePool) - 1)
+            randomIndex = rnd.randint(0, len(genePool) -1)
             parentB = genePool[randomIndex].gene
             child = parentA.CrossOver(parentB)
             buses[i] = Bus(validbusX(), 290, child.array)
@@ -127,12 +128,14 @@ def FinishGeneration():     # A function for resetting process.
 
 
 # List to hold the buses.
-buses = [Bus(validbusX(), 290)]
+buses = []
+for _ in range(busCount):            
+    buses.append(Bus(validbusX(), 290))
 
 #-----------------------Running game------------------------#
 playing = True
 def main():
-    global frameCount, finished, frameLimit
+    global frameCount, finished, frameLimit, aliveBusCount
     bg = BackGround()
     # debuggin.. Kid(350, 480)
     victims = [Adult(350+30, 480)]
@@ -163,6 +166,8 @@ def main():
         for vic in victims:
             for i, bus in enumerate(buses):
                 if vic.collide(buses[i]):
+                    bus.crashed = True
+                    aliveBusCount -= 1
                     vic.alive = False                
                     collided = True
                     #trigger_next_flag
@@ -184,8 +189,10 @@ def main():
             victims.remove(r)
 
         for i, bus in enumerate(buses):
-            if buses[i].checkCollision(victims):
-                bus.crashed = True
+            if bus.alive:                
+                bus.Update(frameCount)
+            if bus.crashed:
+                bus.alive = False                
 
             bus.moveDown()
         
@@ -196,7 +203,7 @@ def main():
 
         ShowText("Last Gen:", 10, 420, 30)
         ShowText("Total Buses:             " + str(len(buses)), 30, 460)
-        ShowText("Successful Buses:     " + str(successCount), 30, 480)
+        ShowText("Successful Buses:    " + str(successCount), 30, 480)
         if successCountD > 0:                                                   # . Change color and sign accordingly
             ShowText("+" + str(successCountD), 250, 480, 20, pg.Color("green")) # .
         else:                                                                   # .
@@ -204,11 +211,11 @@ def main():
 
         ShowText("Avg. Fitness:            " + str(round(avgFitness, 3)), 30, 500)
         if avgFitnessD > 0:
-            ShowText("+" + str(round(avgFitnessD, 3)), 250, 500, 20, pg.Color("green"))
+            ShowText("+" + str(round(avgFitnessD, 3)), 280, 500, 20, pg.Color("green"))
         else:
-            ShowText("-" + str(round(-avgFitnessD, 3)), 250, 500, 20, pg.Color("red"))
+            ShowText("-" + str(round(-avgFitnessD, 3)), 280, 500, 20, pg.Color("red"))
 
-        ShowText("Record Time :           " + str(longestTime), 30, 520)
+        ShowText("Record Time :          " + str(longestTime), 30, 520)
         if longestTimeD > 0:
             ShowText("+" + str(longestTimeD), 250, 460, 20, pg.Color("red"))
         else:
@@ -229,10 +236,6 @@ def main():
     pg.quit()
     quit()
 
-main()
-    
 
-
-# if __name__ == '__main__':
-#     local_dir = os.path.dirname(__file__)
-#     main()
+if __name__ == '__main__':
+    main()
