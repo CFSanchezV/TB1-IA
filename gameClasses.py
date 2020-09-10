@@ -4,13 +4,12 @@ import random as rnd
 import math
 import time
 
+#---------------INIT--------------------...#
 pg.init()
-
 WIN_WIDTH, WIN_HEIGHT = 750, 552
 win = pg.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
-
 pg.font.init()
-segoeFONT = pg.font.SysFont("segoeui", 30, True)
+segoeFONT = pg.font.SysFont("segoeui", 40, True)
 
 #--------------IMAGES---------------------# 
 
@@ -33,21 +32,47 @@ for i in range(0, 750, 250):
         kid_img = pg.transform.scale(kid_img, (kid_img.get_width()-90, kid_img.get_height()-90))
         kid_images.append(kid_img)
 
-
-
 '''
-pygame.transform.scale() documentation
-syntax: scale(Surface, (width, height), DestSurface = None) -> Surface
-An optional destination surface can be used. Quicker to repeatedly scale something.
+pygame.transform.scale() || syntax: scale(Surface, (width, height), DestSurface = None) -> Surface
 '''
+
+def Remap(aliveTime, frameLimit):  # Return 1 if best, returns 0 if worst
+    return 1 + (aliveTime - 0) * (0 - 1) / frameLimit
+
+#-------------------GA VARIABLES-----------------------
+busCount = 50         # Amount of buses for each generation
+aliveBusCount = busCount  # Currently alive buses
+frameLimit = 400
 
 
 #-------------------CLASSES-----------------------
+class DNA:                               # DNA for GA
+    def __init__(self, genes=None):      
+        self.array = []                  # generate random movement or copy genes
+        self.chain = pg.math.Vector2()   # DNA "chain", a 2d vector // xy as tuple () for random movement )
+        if genes:
+            self.array = genes
+        else:
+            for _ in range(frameLimit):  # Generate random sideway movement until the limit frame. rnd.random()*2-1 floats entre 0 y 1
+                self.chain.xy = rnd.random()*2-1, 0
+                self.array.append(self.chain.xy)
+
+    def CrossOver(self, partner):                               # Select a partner from the gene pool,
+        newGenes = []                                           # Choose a random point in the DNA chain,
+        division = math.floor(rnd.randrange(len(self.array)))  # Mix two genes and create a new array of motion.
+        for i in range(len(self.array)):                        # Create a new DNA, with the gene created.
+            if i < division:
+                newGenes.append(partner.array[i])
+            else:
+                newGenes.append(self.array[i])
+
+        return DNA(newGenes)
+
 class Bus:
     """ Bus class """
     ANIMATION_TIME = 5
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, dna=None):
         """
         param x: starting x pos (int)
         param y: starting y pos (int)
@@ -67,11 +92,19 @@ class Bus:
         #collision
         self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
 
+        #GA
+        self.alive = True
+        self.crashed = False
+        self.won = False
+        self.fitness = 0        
+        self.aliveTime = 0
+        if dna:
+            self.gene = DNA(dna)
+        else:
+            self.gene = DNA()
+
     def jump(self):
-        """
-        make the bus jump
-        return: None
-        """
+        """ make the bus jump """
         if not self.jumping:
             self.jumping = True
             self.Vvel = -4.7
@@ -97,25 +130,21 @@ class Bus:
             self.y = self.firstY
             self.jumping = False
 
+        #tick time
+        if self.alive:
+            self.aliveTime += 1
 
     def move(self, direction):
-        """
-        make the bus move left or right
-        return: None
-        """
+        """ move bus left or right """
         self.tick_count += 1
 
         if direction == "right" and self.x + self.Hvel < 600 and not self.jumping:                           
             self.x = self.x + self.Hvel
         elif direction == "left" and self.x - self.Hvel > 200 and not self.jumping:
             self.x = self.x - self.Hvel
-
         
     def draw(self, win):
-        """
-        param win: pg surface
-        return: None
-        """
+        """ param win: pg surface """
         self.img_count += 1
 
         # Loop through three images to 'animate'
@@ -137,13 +166,31 @@ class Bus:
         # draw bus
         win.blit(self.img, (self.x, self.y))
 
-    def get_mask(self):
-        """
-        gets the mask of bus image
-        return: None
-        """
-        return pg.mask.from_surface(self.img)
+    def checkCollision(self, collided):
+        global aliveBusCount
+        
+        if collided:
+            self.crashed = True
 
+        if self.crashed:
+            self.alive = False
+            aliveBusCount -= 1
+
+    def CalculateFitness(self):  # The longer it lives, the better its fitness is.
+        global frameLimit
+        # Fitness set between 0 and 1
+        self.fitness = Remap(self.aliveTime, frameLimit)
+
+    def Update(self, frameCount):   # Update / move the object every other frame.
+        global frameLimit
+        x_disp = self.gene.array[frameCount].x
+        
+        if self.alive and (frameCount%20 == 0):
+            if x_disp > 0:
+                self.move("right")
+            elif x_disp < 0:
+                self.move("right")
+            
 
 class Kid:
     """ Kid class  """
@@ -153,7 +200,6 @@ class Kid:
         """
         param x: starting x pos (int)
         param y: starting y pos (int)
-        return: None
         """
         self.x = x
         self.y = y
@@ -218,7 +264,7 @@ class Kid:
             win.blit(self.img, (self.x + inc, self.y))
 
     def collide(self, bus):
-        # hitbox collisions w/ centers and bus bottom
+        ''' hitbox collisions w/ "centers"+a bit, and bus bottom '''
         if self.alive and not self.passed:
             if ((self.hitbox[0] + self.hitbox[2]//2) > bus.hitbox[0]) and (self.hitbox[0] + self.hitbox[2]//2) < (bus.hitbox[0] + bus.hitbox[2]):
                 if (self.hitbox[1] + self.hitbox[3]//1.4) < bus.hitbox[1] + bus.hitbox[3] and (self.hitbox[1] + self.hitbox[3]//1.4) >= (bus.hitbox[1] + bus.hitbox[3]) - 6:
@@ -231,11 +277,7 @@ class Adult:
     ANIMATION_TIME = 10
 
     def __init__(self, x, y):
-        """
-        param x: starting x pos (int)
-        param y: starting y pos (int)
-        return: None
-        """
+        """ param x: starting x pos (int) ||  param y: starting y pos (int) """
         self.x = x
         self.y = y
         self.tick_count = 0
@@ -299,7 +341,7 @@ class Adult:
             win.blit(self.img, (self.x + inc, self.y))
 
     def collide(self, bus):
-        # hitbox collisions w/ centers and bus bottom
+        ''' hitbox collisions w/ "centers"+a bit, and bus bottom '''
         if self.alive and not self.passed:
             if ((self.hitbox[0] + self.hitbox[2]//2) > bus.hitbox[0]) and (self.hitbox[0] + self.hitbox[2]//2) < (bus.hitbox[0] + bus.hitbox[2]):
                 if (self.hitbox[1] + self.hitbox[3]//1.5) <= bus.hitbox[1] + bus.hitbox[3] and (self.hitbox[1] + self.hitbox[3]//1.5) >= (bus.hitbox[1] + bus.hitbox[3]) - 6:
@@ -320,11 +362,7 @@ class BackGround:
         self.img = self.IMGS[9]
 
     def draw(self, win):
-        """
-        draw the bg scrolling
-        param win: pg window or surface
-        return: None
-        """
+        """ draw the bg scrolling """
         self.img_count += 1
 
         # Loop through 10 images
@@ -355,24 +393,8 @@ class BackGround:
         win.blit(self.img, (self.x, self.y))
 
 
-class DNA:                               # DNA for GA
-    def __init__(self, genes=None):      # has genes?
-        self.array = []                  # generate random movement. Else, do.
-        self.chain = pg.math.Vector2()   # DNA chain = 2d vector // xy as tuple ( for random acceleration )
-        if genes:
-            self.array = genes
-        else:
-            for i in range(moveLimit=20):              # Till the limit frame, generate random movements. rnd.random()*2-1 floats entre 0 y 1
-                self.chain.xy = rnd.random()*2-1, rnd.random()*2-1
-                self.array.append(self.chain.xy)
 
-    def CrossOver(self, partner):                               # Select a partner from the gene pool,
-        newGenes = []                                           # Choose a random point in the DNA chain,
-        middle = math.floor(rnd.randrange(len(self.array)))  # Mix two genes and create a new array of motion.
-        for i in range(len(self.array)):                        # Create a new DNA, with the gene created.
-            if i < middle:
-                newGenes.append(partner.array[i])
-            else:
-                newGenes.append(self.array[i])
 
-        return DNA(newGenes)
+
+
+
