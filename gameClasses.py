@@ -9,7 +9,7 @@ pg.init()
 WIN_WIDTH, WIN_HEIGHT = 750, 552
 win = pg.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 pg.font.init()
-segoeFONT = pg.font.SysFont("segoeui", 40, True)
+segoeFONT = pg.font.SysFont("segoeui", 25, True)
 
 #--------------IMAGES---------------------# 
 
@@ -42,7 +42,7 @@ def Remap(aliveTime, frameLimit):  # Return 1 if best, returns 0 if worst
 #-------------------GA VARIABLES-----------------------
 busCount = 50         # Amount of buses for each generation
 aliveBusCount = busCount  # Currently alive buses
-frameLimit = 400
+frameLimit = 1000       # Max frames to play
 
 
 #-------------------CLASSES-----------------------
@@ -160,10 +160,10 @@ class Bus:
             self.img = bus_images[0]
             self.img_count = 0
 
-        #collision debug        
+        # collision
         self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
-        pg.draw.rect(win, pg.Color("red"), self.hitbox, 2)
-        # draw bus
+        # pg.draw.rect(win, pg.Color("red"), self.hitbox, 2)
+        
         win.blit(self.img, (self.x, self.y))
 
     def checkCollision(self, collided):
@@ -255,9 +255,9 @@ class Kid:
                 self.img_count = 0                
                 inc += 90//2
         
-            #collision debug
+            # collision
             self.hitbox = (self.x + inc, self.y, self.img.get_width(), self.img.get_height())
-            pg.draw.rect(win, pg.Color("blue"), self.hitbox, 2)
+            # pg.draw.rect(win, pg.Color("blue"), self.hitbox, 2)
 
         # win.blit(self.img, (self.x + inc, self.y))
         if self.y != 300 and self.alive == True:
@@ -332,9 +332,9 @@ class Adult:
                 self.img_count = 0                
                 inc += 40//2
         
-            #collision debug
+            # collision
             self.hitbox = (self.x + inc, self.y, self.img.get_width(), self.img.get_height())
-            pg.draw.rect(win, pg.Color("yellow"), self.hitbox, 2)
+            # pg.draw.rect(win, pg.Color("yellow"), self.hitbox, 2)
 
         # win.blit(self.img, (self.x + inc, self.y))
         if self.y != 300 and self.alive == True:
