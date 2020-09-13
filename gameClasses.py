@@ -2,16 +2,15 @@ import pygame as pg
 import os
 import random as rnd
 import math
-import time
 
-#---------------INIT--------------------...#
+#---------------INIT----------------------#
 pg.init()
 WIN_WIDTH, WIN_HEIGHT = 750, 552
 win = pg.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 pg.font.init()
 segoeFONT = pg.font.SysFont("segoeui", 25, True)
 
-#--------------IMAGES---------------------# 
+#--------------IMAGES---------------------#
 
 bus_images = [pg.transform.scale(pg.image.load(os.path.join("images", "bus" + str(x) + ".png")).convert_alpha(), (118, 126)) for x in range(1, 4)]
 bg_images = [pg.transform.scale(pg.image.load(os.path.join("images", "Aroad" + str(i) + ".png")).convert_alpha(), (750, 552)) for i in range(1, 11)]
@@ -35,48 +34,55 @@ for i in range(0, 750, 250):
 '''
 pygame.transform.scale() || syntax: scale(Surface, (width, height), DestSurface = None) -> Surface
 '''
+WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
 
 def Remap(aliveTime, frameLimit):  # Return 1 if best, returns 0 if worst
-    return 1 + (aliveTime - 0) * (0 - 1) / frameLimit
+    return aliveTime / frameLimit
 
 #-------------------GA VARIABLES-----------------------#
-
-busCount = 4         # Amount of buses for each generation
-aliveBusCount = busCount  # Currently alive buses
-frameLimit = 500       # Max frames to play
+# Amount of buses per gen, Time limit per generation
+busCount = 4
+aliveBusCount = busCount
+frameLimit = 1500
 
 #-------------------CLASSES-----------------------
-class DNA:                               # DNA for GA
-    def __init__(self, genes=None):      
-        self.array = []                  # generate random movement or copy genes
-        self.chain = pg.math.Vector2()   # DNA "chain", a 2d vector // xy as tuple () for random movement )
-        if genes:
-            self.array = genes
+class ADN:
+    """ DNA class """
+    def __init__(self, inherited=None):
+        """
+        param genes: prev ADN.genoma list
+        return: None
+        """
+        self.genoma = []
+        if inherited is not None:
+            self.genoma = inherited
         else:
-            for _ in range(frameLimit):  # Generate random sideway movement until the limit frame. rnd.random()*2-1 floats entre 0 y 1
-                self.chain.xy = rnd.random()*2-1, 0
-                self.array.append(self.chain.xy)
+            for _ in range(frameLimit):  # Generate random between 0 and frameLimit-1. Map it /framelimit to scale (0 -> 1) to evaluate "move-probability"
+                self.genoma.append(rnd.randint(0, frameLimit//2 + 20))
 
-    def CrossOver(self, partner):                               # Select a partner from the gene pool,
-        newGenes = []                                           # Choose a random point in the DNA chain,
-        division = math.floor(rnd.randrange(len(self.array)))  # Mix two genes and create a new array of motion.
-        for i in range(len(self.array)):                        # Create a new DNA, with the gene created.
+    def CrossOver(self, couple):        
+        n = len(self.genoma)
+        mixed = []
+        division = math.floor(rnd.randrange(len(self.genoma)))
+        for i in range(n):
             if i < division:
-                newGenes.append(partner.array[i])
+                mixed.append(couple.genoma[i])
             else:
-                newGenes.append(self.array[i])
+                mixed.append(self.genoma[i])
 
-        return DNA(newGenes)
+        return ADN(mixed)
 
 class Bus:
     """ Bus class """
     ANIMATION_TIME = 5
 
-    def __init__(self, x, y, dna=None):
+    def __init__(self, x, y, adn=None):
         """
         param x: starting x pos (int)
         param y: starting y pos (int)
-        return: None
         """
         self.x = x        
         self.y = y
@@ -88,24 +94,27 @@ class Bus:
         #jump
         self.Vvel = 0
         self.jumping = False
-        self.height = self.y        
+        self.height = self.y
+
         #collision
         self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
 
         #GA
+        self.canMove = False
         self.alive = True
         self.crashed = False
         self.won = False
         self.fitness = 0        
         self.aliveTime = 0
-        if dna:
-            self.gene = DNA(dna)
+        if adn:
+            self.genes = ADN(adn)
         else:
-            self.gene = DNA()
+            self.genes = ADN()
 
-    def jump(self):
+    def jump(self, frameCount):
         """ make the bus jump """
-        if not self.jumping:
+        self.testMoveAbility(frameCount)
+        if not self.jumping and self.canMove:
             self.jumping = True
             self.Vvel = -4.7
             self.tick_count = 0
@@ -130,17 +139,40 @@ class Bus:
             self.y = self.firstY
             self.jumping = False
 
-        #tick time
+        #tick time for timeAlive
         if self.alive:
             self.aliveTime += 1
+    
+    def testMoveAbility(self, frameCount):
+        if Remap(self.genes.genoma[frameCount], frameLimit) > 0.5:
+            self.canMove = True
+        else:
+            self.canMove = False
 
-    def move(self, direction):
-        """ move bus left or right """
-        self.tick_count += 1
+    def move(self, victim, frameCount):
+        """ move bus left or right || or jump"""
+        self.tick_count += 1        
+        vicbox = victim.hitbox
 
-        if direction == "right" and self.x + self.Hvel < 600 and not self.jumping:                           
+        # Heuristics
+        threshold = self.hitbox[3] // 4 # or use pixels
+        Vdistance = vicbox[1] - self.hitbox[1]
+
+        #check if collision inminent and react by moving -> or <- or a jump if time is scarce
+        if ((vicbox[0] + vicbox[2]//2) > self.hitbox[0]) and (vicbox[0] + vicbox[2]//2) < (self.hitbox[0] + self.hitbox[2]):
+            # vic vic self.hitbox and vic vic self.hitbox self.hitbox
+            if Vdistance <= threshold:
+                self.jump(frameCount)
+            else:
+                self.moveRandom()     
+
+    def moveRandom(self):
+        direction = rnd.randrange(0, 11)
+        
+        # move right or left
+        if direction >= 6 and self.x + self.Hvel < 600 and not self.jumping:                           
             self.x = self.x + self.Hvel
-        elif direction == "left" and self.x - self.Hvel > 200 and not self.jumping:
+        elif direction < 5 and self.x - self.Hvel > 200 and not self.jumping:
             self.x = self.x - self.Hvel
         
     def draw(self, win):
@@ -163,7 +195,7 @@ class Bus:
 
             # collision
             self.hitbox = (self.x, self.y, self.img.get_width(), self.img.get_height()-6)
-            # pg.draw.rect(win, pg.Color("red"), self.hitbox, 2)
+            # pg.draw.rect(win, RED, self.hitbox, 2)
         
             win.blit(self.img, (self.x, self.y))
 
@@ -181,15 +213,15 @@ class Bus:
         # Fitness set between 0 and 1
         self.fitness = Remap(self.aliveTime, frameLimit)
 
-    def Update(self, frameCount):   # Update / move the object every other frame.
-        global frameLimit
-        x_disp = self.gene.array[frameCount].x
+    # def update(self, frameCount):   # Update / move the object every other frame.
+    #     global frameLimit
+    #     x_disp = self.genes.array[frameCount].x
         
-        if self.alive and (frameCount%20 == 0):
-            if x_disp > 0:                
-                self.move("right")
-            elif x_disp < 0:
-                self.move("left")
+    #     if self.alive and (frameCount%20 == 0):
+    #         if x_disp > 0:                
+    #             self.move("right")
+    #         elif x_disp < 0:
+    #             self.move("left")
             
 
 class Kid:
@@ -257,7 +289,7 @@ class Kid:
         
             # collision
             self.hitbox = (self.x + inc, self.y, self.img.get_width(), self.img.get_height())
-            # pg.draw.rect(win, pg.Color("blue"), self.hitbox, 2)
+            # pg.draw.rect(win, BLUE, self.hitbox, 2)
 
         # win.blit(self.img, (self.x + inc, self.y))
         if self.y != 300 and self.alive == True:
@@ -334,7 +366,7 @@ class Adult:
         
             # collision
             self.hitbox = (self.x + inc, self.y, self.img.get_width(), self.img.get_height())
-            # pg.draw.rect(win, pg.Color("yellow"), self.hitbox, 2)
+            # pg.draw.rect(win, YELLOW, self.hitbox, 2)
 
         # win.blit(self.img, (self.x + inc, self.y))
         if self.y != 300 and self.alive == True:
