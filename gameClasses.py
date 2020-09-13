@@ -44,7 +44,7 @@ def Remap(aliveTime, frameLimit):  # Return 1 if best, returns 0 if worst
 
 #-------------------GA VARIABLES-----------------------#
 # Amount of buses per gen, Time limit per generation
-busCount = 4
+busCount = 7
 aliveBusCount = busCount
 frameLimit = 1500
 
@@ -155,7 +155,7 @@ class Bus:
         vicbox = victim.hitbox
 
         # Heuristics
-        threshold = self.hitbox[3] // 4 # or use pixels
+        threshold = self.hitbox[3] // 3 # or use pixels
         Vdistance = vicbox[1] - self.hitbox[1]
 
         #check if collision inminent and react by moving -> or <- or a jump if time is scarce
