@@ -44,7 +44,7 @@ def Remap(aliveTime, frameLimit):  # Return 1 if best, returns 0 if worst
 
 #-------------------GA VARIABLES-----------------------#
 # Amount of buses per gen, Time limit per generation
-busCount = 7
+busCount = 5
 aliveBusCount = busCount
 frameLimit = 1500
 
@@ -111,9 +111,9 @@ class Bus:
         else:
             self.genes = ADN()
 
-    def jump(self, frameCount):
+    def jump(self):
         """ make the bus jump """
-        self.testMoveAbility(frameCount)
+        # self.testMoveAbility(frameCount)
         if not self.jumping and self.canMove:
             self.jumping = True
             self.Vvel = -4.7
@@ -155,16 +155,15 @@ class Bus:
         vicbox = victim.hitbox
 
         # Heuristics
-        threshold = self.hitbox[3] // 3 # or use pixels
-        Vdistance = vicbox[1] - self.hitbox[1]
+        threshold = self.hitbox[3] // 3 # or add/sub pixels
+        Vdistance = vicbox[1] - (self.hitbox[1] +  self.hitbox[3])
 
         #check if collision inminent and react by moving -> or <- or a jump if time is scarce
-        if ((vicbox[0] + vicbox[2]//2) > self.hitbox[0]) and (vicbox[0] + vicbox[2]//2) < (self.hitbox[0] + self.hitbox[2]):
-            # vic vic self.hitbox and vic vic self.hitbox self.hitbox
+        if (vicbox[0] + vicbox[2]//2) > self.hitbox[0] and (vicbox[0] + vicbox[2]//2) < (self.hitbox[0] + self.hitbox[2]):
             if Vdistance <= threshold:
-                self.jump(frameCount)
+                self.jump()
             else:
-                self.moveRandom()     
+                self.moveRandom()
 
     def moveRandom(self):
         direction = rnd.randrange(0, 11)
