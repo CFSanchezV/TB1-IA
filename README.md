@@ -1,6 +1,6 @@
 # TB1 - Inteligencia Artificial
 
-## Pequeño Vistazo
+## Pequeño gran Vistazo
 
 ![](ezgif-bus.gif)
 
@@ -28,9 +28,9 @@ _Clonación del repositorio_
 git clone https://github.com/CFSanchezV/TB1-IA
 ```
 
-#### Windonws 10
+#### Windows 10
 
-_Instalación de Pygame y Pygame_menu en Windows 10_
+_Instalación de Pygame en Windows 10_
 
 ```
 pip install pygame
