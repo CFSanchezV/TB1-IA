@@ -42,7 +42,7 @@ def drawText(string, x, y, size = 20, color=(255, 255, 255)):   # show text on s
     win.blit(segoe.render(string, True, color), (x, y))
 
 def draw_window(win, bg, buses, victims, score):  # 'draw it all' method, order matters    
-    the_score = segoeFONT.render("Score:" + str(score), True, WHITE)
+    the_score = segoeFONT.render("Accidentes evitados: " + str(score), True, WHITE)
     win.blit(the_score, (WIN_WIDTH - 10 - the_score.get_width(), 0))
     
     for bus in buses:
@@ -174,9 +174,9 @@ def main():
                     pass
                 if event.key == pg.K_UP:
                     pass
-        # Display timers
-        frame_counter = "Frame: " + str(frameCount)
-        counter_limit = "  / " + str(frameLimit)
+        # timers
+        frame_counter = "Fotograma: " + str(frameCount)
+        counter_limit = "         / " + str(frameLimit)
         
         add_vic = False
         collided = False
@@ -224,14 +224,14 @@ def main():
         drawText("Buses vivos: " + str(aliveBusCount), 10, 40)
 
         drawText("Generación previa:", 10, 420, 30)
-        drawText("No. de Buses:            " + str(len(buses)), 30, 460)
+        drawText("No. de buses:            " + str(len(buses)), 33, 460)
         drawText("Buses que ganaron:   " + str(completeCount), 30, 480)
         if completeCountD > 0:
             drawText("+" + str(completeCountD), 300, 480, 20, GREEN)
         else:
             drawText("-" + str(-completeCountD), 300, 480, 20, RED)
 
-        drawText("Fitness promedio:      " + str(round(avgFit, 3)), 30, 500)
+        drawText("Idoneidad promedio: " + str(round(avgFit, 3)), 30, 500)
         if avgFitD > 0:
             drawText("+" + str(round(avgFitD, 3)), 300, 500, 20, GREEN)
         else:
