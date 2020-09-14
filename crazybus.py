@@ -4,7 +4,8 @@ from gameClasses import *
 pg.display.set_caption("AI Bus")
 clock = pg.time.Clock()
 FPS = 60
-
+print("En gameClasses.py:")
+print("Ajustar valor de 'busCount' para iniciar con otra cantidad de autobuses y 'frameLimit' para el tiempo limite")
 #----------------GEN ALG COUNTERS---------------------#
 rnd.seed(rnd.randrange(65432121))
 genCount = 0
@@ -100,8 +101,8 @@ def FinishGeneration():
     for i, bus in enumerate(buses):
         n = int((bus.fitness ** 2) * 100)
         if i == maxFitIndex:
-            # check
-            print(bus.fitness)
+            # check fitness
+            # print(bus.fitness)
 
             if completeCount < 2:
                 n = int((bus.fitness ** 2) * 150)
@@ -112,8 +113,8 @@ def FinishGeneration():
         for _ in range(n):
             matingPool.append(buses[i])
     
-    # check
-    print(len(matingPool))
+    # check matingPool
+    # print(len(matingPool))
                 
     # Reset all if they all win
     if completeCount >= len(buses):

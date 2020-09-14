@@ -43,7 +43,7 @@ def Remap(aliveTime, frameLimit):  # Return 1 if best, returns 0 if worst
     return aliveTime / frameLimit
 
 #-------------------GA VARIABLES-----------------------#
-# Amount of buses per gen, Time limit per generation
+# Esta variable (busCount) define con cuantos autobuses probar el algoritmo y hasta que momento terminar las generaciones(frameLimit)
 busCount = 5
 aliveBusCount = busCount
 frameLimit = 1500
@@ -160,7 +160,7 @@ class Bus:
 
         #check if collision inminent and react by moving -> or <- or a jump if time is scarce
         if (vicbox[0] + vicbox[2]//2) > self.hitbox[0] and (vicbox[0] + vicbox[2]//2) < (self.hitbox[0] + self.hitbox[2]):
-            if Vdistance <= threshold:
+            if Vdistance < threshold:
                 self.jump()
             else:
                 self.moveRandom()
