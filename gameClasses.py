@@ -160,7 +160,7 @@ class Bus:
 
         #check if collision inminent and react by moving -> or <- or a jump if time is scarce
         if (vicbox[0] + vicbox[2]//2) > self.hitbox[0] and (vicbox[0] + vicbox[2]//2) < (self.hitbox[0] + self.hitbox[2]):
-            if Vdistance < threshold:
+            if Vdistance == threshold:
                 self.jump()
             else:
                 self.moveRandom()

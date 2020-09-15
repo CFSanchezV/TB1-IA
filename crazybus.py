@@ -3,12 +3,13 @@ from gameClasses import *
 
 pg.display.set_caption("AI Bus")
 clock = pg.time.Clock()
-FPS = 60
+FPS = 30
 print("En gameClasses.py:")
 print("Ajustar valor de 'busCount' para iniciar con otra cantidad de autobuses y 'frameLimit' para el tiempo limite")
 #----------------GEN ALG COUNTERS---------------------#
 rnd.seed(rnd.randrange(65432121))
 genCount = 0
+
 # Fitness (between 0 to 1) longestTime (bus.timeAlive) completeCount (No. of buses alive at time limit)
 frameCount = 0
 avgFit = 0
