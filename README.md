@@ -49,10 +49,3 @@ _Si ocurre algún problema consulte el siguiente [link](https://riptutorial.com/
 ## Construido con 🛠️
 
 * [Pygame](https://www.pygame.org/news) - Documentación de pygame
-
-
-## Autores ✒️
-
-* **Christian Sanchez** 
-* **Fernando Valdiviezo** 
-* **Frank Zegarra** 
